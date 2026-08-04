@@ -85,13 +85,13 @@ public class EsProductServiceImpl implements EsProductService {
 
     @Override
     public Page<EsProduct> search(String keyword, Integer pageNum, Integer pageSize) {
-        Pageable pageable = PageRequest.of(pageNum, pageSize);
+        Pageable pageable = PageRequest.of(pageNum > 0 ? pageNum - 1 : 0, pageSize);
         return productRepository.findByNameOrSubTitleOrKeywords(keyword, keyword, keyword, pageable);
     }
 
     @Override
     public Page<EsProduct> search(String keyword, Long brandId, Long productCategoryId, Integer pageNum, Integer pageSize,Integer sort) {
-        Pageable pageable = PageRequest.of(pageNum, pageSize);
+        Pageable pageable = PageRequest.of(pageNum > 0 ? pageNum - 1 : 0, pageSize);
         NativeQueryBuilder nativeQueryBuilder = new NativeQueryBuilder();
         //分页
         nativeQueryBuilder.withPageable(pageable);
@@ -159,7 +159,7 @@ public class EsProductServiceImpl implements EsProductService {
 
     @Override
     public Page<EsProduct> recommend(Long id, Integer pageNum, Integer pageSize) {
-        Pageable pageable = PageRequest.of(pageNum, pageSize);
+        Pageable pageable = PageRequest.of(pageNum > 0 ? pageNum - 1 : 0, pageSize);
         List<EsProduct> esProductList = productDao.getAllEsProductList(id);
         if (esProductList.size() > 0) {
             EsProduct esProduct = esProductList.get(0);
