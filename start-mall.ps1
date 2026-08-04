@@ -15,7 +15,8 @@
 param(
     [switch]$Rebuild,
     [switch]$SkipBuild,
-    [switch]$SkipContainers
+    [switch]$SkipContainers,
+    [switch]$SkipFrontend
 )
 
 $ErrorActionPreference = 'Stop'
@@ -276,7 +277,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 Write-Host ''
 Write-Host '========== mall 一键启动 =========='
 
-Write-Host '[1/4] Docker 环境'
+Write-Host '[1/5] Docker 环境'
 if (-not (Test-CommandExists 'docker')) {
     Write-Host '  [FAIL] 未找到 docker 命令，请先安装 Docker Desktop'
     exit 1
@@ -295,7 +296,7 @@ if (-not (Wait-Docker)) {
 Write-Host '  [OK] Docker 引擎已就绪'
 
 if (-not $SkipContainers) {
-    Write-Host '[2/4] 依赖容器'
+    Write-Host '[2/5] 依赖容器'
     Ensure-Container -Name 'mall-mysql' -Image 'mysql:5.7' `
         -Env @('MYSQL_ROOT_PASSWORD=root', 'MYSQL_DATABASE=mall', 'TZ=Asia/Shanghai') `
         -Ports @('3305:3306') `
@@ -331,10 +332,10 @@ if (-not $SkipContainers) {
     Ensure-RabbitMqConfig
     Ensure-MysqlData | Out-Null
 } else {
-    Write-Host '[2/4] 依赖容器（已跳过）'
+    Write-Host '[2/5] 依赖容器（已跳过）'
 }
 
-Write-Host '[3/4] 构建'
+Write-Host '[3/5] 构建'
 $Jdk = Get-Jdk17
 if (-not $Jdk) {
     Write-Host '  [FAIL] 未找到 JDK 17，请安装或在 JAVA_HOME 中指定'
@@ -352,11 +353,65 @@ if ($SkipBuild) {
     exit 1
 }
 
-Write-Host '[4/4] 启动服务'
+Write-Host '[4/5] 启动服务'
 $mongoHost = Get-MongoHost
 Start-MallApp -Name 'mall-admin'  -Port 8080 -Jar (Join-Path $Root 'mall-admin\target\mall-admin-1.0-SNAPSHOT.jar')  -Jdk $Jdk | Out-Null
 Start-MallApp -Name 'mall-portal' -Port 8085 -Jar (Join-Path $Root 'mall-portal\target\mall-portal-1.0-SNAPSHOT.jar') -Jdk $Jdk -ExtraEnv @{ SPRING_DATA_MONGODB_HOST = $mongoHost } | Out-Null
 Start-MallApp -Name 'mall-search' -Port 8081 -Jar (Join-Path $Root 'mall-search\target\mall-search-1.0-SNAPSHOT.jar')  -Jdk $Jdk | Out-Null
+
+if (-not $SkipFrontend) {
+    Write-Host '[5/5] 前端项目'
+    $frontends = @(
+        @{ Name = 'mall-admin-web'; Dir = Join-Path $Root 'mall-admin-web'; Port = 8090; Script = 'dev';    Args = @('--', '--port', '8090', '--host') },
+        @{ Name = 'mall-app-web';   Dir = Join-Path $Root 'mall-app-web';   Port = 8091; Script = 'dev:h5'; Args = @('--', '--port', '8091') }
+    )
+    $npm = $null
+    $npmCmd = Get-Command npm.cmd -ErrorAction SilentlyContinue
+    if ($npmCmd) { $npm = $npmCmd.Source }
+    elseif (Test-Path 'C:\Program Files\nodejs\npm.cmd') { $npm = 'C:\Program Files\nodejs\npm.cmd' }
+
+    foreach ($fe in $frontends) {
+        if (-not (Test-Path $fe.Dir)) {
+            Write-Host "  [SKIP] $($fe.Name) 未找到（$($fe.Dir)），跳过"
+            continue
+        }
+        if (Test-HttpUp "http://localhost:$($fe.Port)/") {
+            Write-Host "  [SKIP] $($fe.Name) 已在运行 (port $($fe.Port))"
+            continue
+        }
+        if (-not (Test-Path (Join-Path $fe.Dir 'node_modules'))) {
+            if (-not $npm) { Write-Host "  [FAIL] 未找到 npm，无法安装 $($fe.Name) 依赖"; continue }
+            Write-Host "  [..] 安装 $($fe.Name) 依赖 ..."
+            Push-Location $fe.Dir
+            try {
+                & $npm install --no-audit --no-fund *> $null
+                if ($LASTEXITCODE -ne 0) { Write-Host "  [FAIL] $($fe.Name) 依赖安装失败"; continue }
+            } finally {
+                Pop-Location
+            }
+        }
+        if (-not $npm) { Write-Host "  [FAIL] 未找到 npm，无法启动 $($fe.Name)"; continue }
+        Write-Host "  [..] 启动 $($fe.Name) (port $($fe.Port)) ..."
+        $outLog = Join-Path $LogDir "$($fe.Name).log"
+        $errLog = Join-Path $LogDir "$($fe.Name).err.log"
+        $argList = @('run', $fe.Script) + $fe.Args
+        Start-Process -FilePath $npm -ArgumentList $argList -WorkingDirectory $fe.Dir `
+            -RedirectStandardOutput $outLog -RedirectStandardError $errLog -WindowStyle Hidden | Out-Null
+        $deadline = (Get-Date).AddSeconds(120)
+        $started = $false
+        while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 4
+            if (Test-HttpUp "http://localhost:$($fe.Port)/") {
+                Write-Host "  [OK] $($fe.Name) 启动完成 (http://localhost:$($fe.Port))"
+                $started = $true
+                break
+            }
+        }
+        if (-not $started) { Write-Host "  [FAIL] $($fe.Name) 未就绪，日志: $outLog" }
+    }
+} else {
+    Write-Host '[5/5] 前端项目（已跳过）'
+}
 
 Write-Host ''
 Write-Host '========== 启动汇总 =========='
@@ -369,6 +424,9 @@ Write-Host '接口文档:'
 Write-Host '  mall-admin  -> http://localhost:8080/swagger-ui/index.html'
 Write-Host '  mall-portal -> http://localhost:8085/swagger-ui/index.html'
 Write-Host '  mall-search -> http://localhost:8081/swagger-ui/index.html'
+Write-Host '前端页面:'
+Write-Host '  后台管理    -> http://localhost:8090/'
+Write-Host '  前台商城H5  -> http://localhost:8091/'
 Write-Host '后台登录: admin / macro123'
 Write-Host "日志目录: $LogDir"
 Write-Host ''
