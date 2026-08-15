@@ -37,6 +37,11 @@ public interface UmsMemberService {
     void updatePassword(String telephone, String password, String authCode);
 
     /**
+     * 更新当前会员个人资料（昵称/头像/性别/生日/城市/职业/签名）
+     */
+    void updateProfile(UmsMember member);
+
+    /**
      * 获取当前登录会员
      */
     UmsMember getCurrentMember();

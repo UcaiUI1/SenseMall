@@ -1,58 +1,32 @@
 <template>
   <view class="container">
-    <view
-      class="list-cell b-b m-t"
-      @click="navTo('个人资料')"
-      hover-class="cell-hover"
-      :hover-stay-time="50"
-    >
+    <view class="list-cell b-b m-t" @click="navTo('/pages/user/profile')" hover-class="cell-hover" :hover-stay-time="50">
       <text class="cell-tit">个人资料</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
-    <view
-      class="list-cell b-b"
-      @click="navTo('/pages/address/address')"
-      hover-class="cell-hover"
-      :hover-stay-time="50"
-    >
+    <view class="list-cell b-b" @click="navTo('/pages/address/address')" hover-class="cell-hover" :hover-stay-time="50">
       <text class="cell-tit">收货地址</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
-    <view
-      class="list-cell"
-      @click="navTo('实名认证')"
-      hover-class="cell-hover"
-      :hover-stay-time="50"
-    >
-      <text class="cell-tit">实名认证</text>
+    <view class="list-cell" @click="navTo('/pages/user/changePassword')" hover-class="cell-hover" :hover-stay-time="50">
+      <text class="cell-tit">修改密码</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
 
     <view class="list-cell m-t">
       <text class="cell-tit">消息推送</text>
-      <switch checked color="#fa436a" @change="switchChange" />
+      <switch :checked="pushEnabled" color="#fa436a" @change="switchChange" />
     </view>
-    <view
-      class="list-cell m-t b-b"
-      @click="navTo('清除缓存')"
-      hover-class="cell-hover"
-      :hover-stay-time="50"
-    >
+    <view class="list-cell m-t b-b" @click="clearCache" hover-class="cell-hover" :hover-stay-time="50">
       <text class="cell-tit">清除缓存</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
-    <view
-      class="list-cell b-b"
-      @click="navToOuter('https://github.com/macrozheng/mall')"
-      hover-class="cell-hover"
-      :hover-stay-time="50"
-    >
-      <text class="cell-tit">关于 mall-app-web</text>
+    <view class="list-cell b-b" @click="openGithub" hover-class="cell-hover" :hover-stay-time="50">
+      <text class="cell-tit">GitHub 项目</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
-    <view class="list-cell">
+    <view class="list-cell" @click="checkUpdate" hover-class="cell-hover" :hover-stay-time="50">
       <text class="cell-tit">检查更新</text>
-      <text class="cell-tip">当前版本 1.0.0</text>
       <text class="cell-more yticon icon-you"></text>
     </view>
     <view class="list-cell log-out-btn" @click="toLogout">
@@ -62,45 +36,56 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useMemberStore } from '@/stores/member'
-// 获取会员store
+
 const memberStore = useMemberStore()
 
-// 退出登录
+// 消息推送开关（本地偏好）
+const pushEnabled = ref(uni.getStorageSync('push_enabled') !== 'off')
+
 const toLogout = () => {
   uni.showModal({
     content: '确定要退出登录么',
     success: (e) => {
       if (e.confirm) {
         memberStore.memberLogout()
-        uni.showToast({
-          title: '已退出登录',
-          icon: 'success',
-        })
-        setTimeout(() => {
-          uni.navigateBack()
-        }, 200)
+        uni.showToast({ title: '已退出登录', icon: 'success' })
+        setTimeout(() => uni.navigateBack(), 200)
       }
     },
   })
 }
 
-// 页面内导航
 const navTo = (url: string) => {
-  if (url.includes('pages')) {
-    uni.navigateTo({
-      url: url,
-    })
-  } else {
-    uni.showToast({
-      title: `跳转到${url}`,
-      icon: 'none',
-    })
-  }
+  uni.navigateTo({ url })
 }
 
-// 外部链接导航
-const navToOuter = (url: string) => {
+const switchChange = (e: any) => {
+  const on = e.detail.value
+  uni.setStorageSync('push_enabled', on ? 'on' : 'off')
+  uni.showToast({ icon: 'none', title: on ? '消息推送已开启' : '消息推送已关闭' })
+}
+
+const clearCache = () => {
+  uni.showModal({
+    content: '确定要清除本地缓存吗？',
+    success: (e) => {
+      if (e.confirm) {
+        const token = uni.getStorageSync('token')
+        const username = uni.getStorageSync('username')
+        uni.clearStorageSync()
+        if (token) uni.setStorageSync('token', token)
+        if (username) uni.setStorageSync('username', username)
+        uni.showToast({ title: '缓存已清除', icon: 'success' })
+      }
+    },
+  })
+}
+
+// 直达 GitHub 项目
+const openGithub = () => {
+  const url = 'https://github.com/UcaiUI1/mall'
   // #ifdef H5
   window.location.href = url
   // #endif
@@ -110,73 +95,60 @@ const navToOuter = (url: string) => {
   // #ifdef MP
   uni.setClipboardData({
     data: url,
-    success: () => {
-      uni.showToast({
-        title: '链接已复制到剪贴板',
-        icon: 'none',
-      })
-    },
+    success: () => uni.showToast({ title: '项目地址已复制', icon: 'none' }),
   })
   // #endif
 }
 
-// 消息推送开关
-const switchChange = (e: any) => {
-  const statusTip = e.detail.value ? '打开' : '关闭'
-  uni.showToast({
-    title: `${statusTip}消息推送`,
-    icon: 'none',
-  })
+const checkUpdate = () => {
+  uni.showToast({ icon: 'none', title: '当前已是最新版本 v1.0.0' })
 }
 </script>
 
 <style lang="scss">
 page {
-  background: $page-color-base;
+  background: #f5f6f8;
 }
+
+.container {
+  padding: 20rpx 24rpx 60rpx;
+}
+
 .list-cell {
   display: flex;
-  align-items: baseline;
-  padding: 20upx $page-row-spacing;
-  line-height: 60upx;
-  position: relative;
-  background: #fff;
-  justify-content: center;
-  &.log-out-btn {
-    margin-top: 40upx;
-    .cell-tit {
-      color: $uni-color-primary;
-      text-align: center;
-      margin-right: 0;
-    }
-  }
-  &.cell-hover {
-    background: #fafafa;
-  }
-  &.b-b:after {
-    left: 30upx;
-  }
+  align-items: center;
+  padding: 28rpx 24rpx;
+  background: #ffffff;
+  font-size: 28rpx;
+  color: #303133;
+
   &.m-t {
-    margin-top: 16upx;
+    margin-top: 20rpx;
   }
-  .cell-more {
-    align-self: baseline;
-    font-size: $font-lg;
-    color: $font-color-light;
-    margin-left: 10upx;
+
+  &.b-b {
+    border-bottom: 1rpx solid #f5f5f5;
   }
-  .cell-tit {
-    flex: 1;
-    font-size: $font-base + 2rpx;
-    color: $font-color-dark;
-    margin-right: 10upx;
+
+  &.log-out-btn {
+    margin-top: 20rpx;
+    justify-content: center;
+    color: #fa436a;
   }
-  .cell-tip {
-    font-size: $font-base;
-    color: $font-color-light;
-  }
-  switch {
-    transform: translateX(16upx) scale(0.84);
-  }
+}
+
+.cell-tit {
+  flex: 1;
+}
+
+.cell-tip {
+  font-size: 24rpx;
+  color: #909399;
+  margin-right: 8rpx;
+}
+
+.cell-more {
+  font-size: 28rpx;
+  color: #c0c4cc;
 }
 </style>

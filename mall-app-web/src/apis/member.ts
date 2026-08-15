@@ -41,3 +41,29 @@ export const getAuthCodeAPI = (telephone: string) => {
     params: { telephone },
   })
 }
+
+/** 更新个人资料 */
+export const updateProfileAPI = (data: {
+  nickname?: string
+  icon?: string
+  gender?: number
+  birthday?: string
+  city?: string
+  job?: string
+  personalizedSignature?: string
+}) => {
+  return http({
+    method: 'POST',
+    url: '/sso/updateProfile',
+    data,
+  })
+}
+
+/** 修改密码（短信验证码重置） */
+export const updatePasswordAPI = (data: { telephone: string; password: string; authCode: string }) => {
+  return http({
+    method: 'POST',
+    url: '/sso/updatePassword',
+    params: data,
+  })
+}

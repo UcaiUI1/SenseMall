@@ -24,8 +24,8 @@ $Root = $PSScriptRoot
 $LogDir = Join-Path $Root 'logs'
 
 # ---------- 常量 ----------
-$EsImage    = 'elasticsearch:7.17.28'
-$IkPlugin   = 'https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-7.17.28.zip'
+$EsImage    = 'docker.1ms.run/elasticsearch:8.17.3'
+$IkPlugin   = 'https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-8.17.3.zip'
 $DataSourceUrl = 'jdbc:mysql://localhost:3305/mall?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false'
 
 # ---------- 工具函数 ----------
@@ -175,20 +175,20 @@ function Ensure-RabbitMqConfig {
 }
 
 function Ensure-EsPlugin {
-    $plugins = docker exec mall-elasticsearch bin/elasticsearch-plugin list 2>$null
+    $plugins = docker exec mall-elasticsearch8 bin/elasticsearch-plugin list 2>$null
     if ($plugins -match 'analysis-ik') {
         Write-Host '  [OK] Elasticsearch IK 插件已安装'
         return $true
     }
     Write-Host '  [..] 安装 Elasticsearch IK 中文分词插件...'
-    'y' | docker exec -i mall-elasticsearch bin/elasticsearch-plugin install $IkPlugin *> $null
-    $plugins = docker exec mall-elasticsearch bin/elasticsearch-plugin list 2>$null
+    'y' | docker exec -i mall-elasticsearch8 bin/elasticsearch-plugin install $IkPlugin *> $null
+    $plugins = docker exec mall-elasticsearch8 bin/elasticsearch-plugin list 2>$null
     if ($plugins -notmatch 'analysis-ik') {
         Write-Host '  [FAIL] IK 插件安装失败'
         return $false
     }
     Write-Host '  [..] 重启 Elasticsearch 激活插件'
-    docker restart mall-elasticsearch | Out-Null
+    docker restart mall-elasticsearch8 | Out-Null
     return $true
 }
 
@@ -316,8 +316,8 @@ if (-not $SkipContainers) {
         -Cmd @('server', '/data', '--console-address', ':9001') `
         -Ports @('9000:9000', '9001:9001') `
         -Volume 'mall-minio-data:/data' | Out-Null
-    Ensure-Container -Name 'mall-elasticsearch' -Image $EsImage `
-        -Env @('discovery.type=single-node', 'cluster.name=elasticsearch', 'ES_JAVA_OPTS=-Xms512m -Xmx1024m') `
+    Ensure-Container -Name 'mall-elasticsearch8' -Image $EsImage `
+        -Env @('discovery.type=single-node', 'cluster.name=elasticsearch', 'xpack.security.enabled=false', 'ES_JAVA_OPTS=-Xms512m -Xmx1024m') `
         -Ports @('9200:9200', '9300:9300') `
         -Volume 'mall-es-data:/usr/share/elasticsearch/data' | Out-Null
 

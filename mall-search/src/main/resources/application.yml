@@ -32,5 +32,12 @@ springdoc:
     - group: 'mall-search'
       packages-to-scan: com.macro.mall.search.controller
 
+# 语义搜索配置
+mall:
+  search:
+    embedding:
+      api-key: ${DASHSCOPE_API_KEY:}
+      model: text-embedding-v3
+
 
 

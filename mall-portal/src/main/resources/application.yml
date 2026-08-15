@@ -6,6 +6,14 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  ai:
+    deepseek:
+      base-url: https://api.deepseek.com
+      api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key-here}
+      chat:
+        options:
+          model: deepseek-v4-flash
+          temperature: 0.3
 
 mybatis:
   mapper-locations:
@@ -35,6 +43,16 @@ secure:
       - /product/**
       - /brand/**
       - /alipay/**
+      - /ai/**
+
+# AI 导购业务参数
+mall:
+  ai:
+    session-expire: 86400 # 会话保留时间(秒)
+    max-history-messages: 12 # 保留的最近消息条数
+    search-page-size: 8 # 单次搜索返回商品数
+  search:
+    base-url: http://localhost:8081 # mall-search 服务地址（语义检索）
 
 springdoc:
   swagger-ui:

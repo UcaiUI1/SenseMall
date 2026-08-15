@@ -16,8 +16,10 @@ const httpInterceptor = {
     if (!options.url.startsWith('http')) {
       options.url = baseURL + options.url
     }
-    // 2.设置超时时间
-    options.timeout = 10 * 1000
+    // 2.设置超时时间（调用方已指定时以调用方为准，如 AI 对话需要更长超时）
+    if (!options.timeout) {
+      options.timeout = 10 * 1000
+    }
     // 3.添加请求头标识
     options.header = {
       'source-client': 'miniapp',

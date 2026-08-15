@@ -11,6 +11,7 @@ import co.elastic.clients.util.ObjectBuilder;
 import com.macro.mall.search.dao.EsProductDao;
 import com.macro.mall.search.domain.EsProduct;
 import com.macro.mall.search.domain.EsProductRelatedInfo;
+import com.macro.mall.search.component.EmbeddingService;
 import com.macro.mall.search.repository.EsProductRepository;
 import com.macro.mall.search.service.EsProductService;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.math.BigDecimal;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,9 +43,13 @@ public class EsProductServiceImpl implements EsProductService {
     private EsProductRepository productRepository;
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
+    @Autowired
+    private EmbeddingService embeddingService;
+
     @Override
     public int importAll() {
         List<EsProduct> esProductList = productDao.getAllEsProductList(null);
+        esProductList.forEach(this::fillEmbedding);
         Iterable<EsProduct> esProductIterable = productRepository.saveAll(esProductList);
         Iterator<EsProduct> iterator = esProductIterable.iterator();
         int result = 0;
@@ -65,9 +71,124 @@ public class EsProductServiceImpl implements EsProductService {
         List<EsProduct> esProductList = productDao.getAllEsProductList(id);
         if (esProductList.size() > 0) {
             EsProduct esProduct = esProductList.get(0);
+            fillEmbedding(esProduct);
             result = productRepository.save(esProduct);
         }
         return result;
+    }
+
+    @Override
+    public Page<EsProduct> semanticSearch(String keyword, Long brandId, Long productCategoryId,
+                                          BigDecimal priceMin, BigDecimal priceMax,
+                                          Integer pageNum, Integer pageSize) {
+        int size = Math.max(pageSize == null ? 8 : pageSize, 1);
+        int topK = size * 3;
+        Pageable pageable = PageRequest.of(Math.max(pageNum == null ? 1 : pageNum, 1) - 1, size);
+        List<EsProduct> semanticHits = new ArrayList<>();
+        // 语义检索（向量 kNN）
+        if (StrUtil.isNotEmpty(keyword)) {
+            try {
+                List<Float> queryVector = embeddingService.embed(keyword);
+                if (!queryVector.isEmpty()) {
+                    NativeQueryBuilder knnBuilder = new NativeQueryBuilder();
+                    knnBuilder.withPageable(PageRequest.of(0, topK));
+                    addCommonFilter(knnBuilder, brandId, productCategoryId, priceMin, priceMax);
+                    knnBuilder.withQuery(builder -> builder.knn(knn -> knn
+                            .field("vector")
+                            .queryVector(queryVector)
+                            .k(topK)
+                            .numCandidates(200)));
+                    SearchHits<EsProduct> knnHits = elasticsearchTemplate.search(knnBuilder.build(), EsProduct.class);
+                    knnHits.forEach(hit -> semanticHits.add(hit.getContent()));
+                }
+            } catch (Exception e) {
+                LOGGER.warn("向量检索失败，回退关键词检索: {}", e.getMessage());
+            }
+        }
+        // 关键词检索（BM25）
+        List<EsProduct> keywordHits = new ArrayList<>();
+        if (StrUtil.isNotEmpty(keyword)) {
+            NativeQueryBuilder kwBuilder = new NativeQueryBuilder();
+            kwBuilder.withPageable(PageRequest.of(0, topK));
+            addCommonFilter(kwBuilder, brandId, productCategoryId, priceMin, priceMax);
+            kwBuilder.withQuery(builder -> builder.multiMatch(match -> match
+                    .fields("name^10", "subTitle^5", "keywords^2")
+                    .query(keyword)));
+            SearchHits<EsProduct> kwHits = elasticsearchTemplate.search(kwBuilder.build(), EsProduct.class);
+            kwHits.forEach(hit -> keywordHits.add(hit.getContent()));
+        }
+        // 语义优先交错合并、去重
+        List<EsProduct> merged = mergeHits(semanticHits, keywordHits, size);
+        return new PageImpl<>(merged, pageable, merged.size());
+    }
+
+    /**
+     * 为商品生成语义向量（失败不阻断导入）
+     */
+    private void fillEmbedding(EsProduct esProduct) {
+        try {
+            String text = StrUtil.join(" ",
+                    esProduct.getName(),
+                    esProduct.getSubTitle(),
+                    esProduct.getKeywords(),
+                    esProduct.getBrandName(),
+                    esProduct.getProductCategoryName());
+            List<Float> vector = embeddingService.embed(text);
+            if (!vector.isEmpty()) {
+                esProduct.setVector(vector);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("商品 {} 向量生成失败: {}", esProduct.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * 品牌/分类/价格过滤
+     */
+    private void addCommonFilter(NativeQueryBuilder builder, Long brandId, Long productCategoryId,
+                                 BigDecimal priceMin, BigDecimal priceMax) {
+        if (brandId == null && productCategoryId == null && priceMin == null && priceMax == null) {
+            return;
+        }
+        builder.withFilter(QueryBuilders.bool(bool -> {
+            if (brandId != null) {
+                bool.must(QueryBuilders.term(term -> term.field("brandId").value(brandId)));
+            }
+            if (productCategoryId != null) {
+                bool.must(QueryBuilders.term(term -> term.field("productCategoryId").value(productCategoryId)));
+            }
+            if (priceMin != null) {
+                bool.must(QueryBuilders.range(range -> range.number(num -> num.field("price").gte(priceMin.doubleValue()))));
+            }
+            if (priceMax != null) {
+                bool.must(QueryBuilders.range(range -> range.number(num -> num.field("price").lte(priceMax.doubleValue()))));
+            }
+            return bool;
+        }));
+    }
+
+    /**
+     * 语义结果与关键词结果按"语义优先交错"合并，按 id 去重
+     */
+    private List<EsProduct> mergeHits(List<EsProduct> semantic, List<EsProduct> keyword, int limit) {
+        List<EsProduct> merged = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+        int max = Math.max(semantic.size(), keyword.size());
+        for (int i = 0; i < max && merged.size() < limit; i++) {
+            if (i < semantic.size()) {
+                addUnique(merged, seen, semantic.get(i));
+            }
+            if (i < keyword.size()) {
+                addUnique(merged, seen, keyword.get(i));
+            }
+        }
+        return merged;
+    }
+
+    private void addUnique(List<EsProduct> list, Set<Long> seen, EsProduct product) {
+        if (product.getId() != null && seen.add(product.getId())) {
+            list.add(product);
+        }
     }
 
     @Override

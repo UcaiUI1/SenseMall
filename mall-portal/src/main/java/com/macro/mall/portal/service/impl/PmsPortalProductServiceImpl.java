@@ -13,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,31 +44,22 @@ public class PmsPortalProductServiceImpl implements PmsPortalProductService {
 
     @Override
     public List<PmsProduct> search(String keyword, Long brandId, Long productCategoryId, Integer pageNum, Integer pageSize, Integer sort) {
+        return search(keyword, brandId, productCategoryId, null, null, pageNum, pageSize, sort);
+    }
+
+    @Override
+    public List<PmsProduct> search(String keyword, Long brandId, Long productCategoryId,
+                                   BigDecimal priceMin, BigDecimal priceMax,
+                                   Integer pageNum, Integer pageSize, Integer sort) {
         PageHelper.startPage(pageNum, pageSize);
-        PmsProductExample example = new PmsProductExample();
-        PmsProductExample.Criteria criteria = example.createCriteria();
-        criteria.andDeleteStatusEqualTo(0);
-        criteria.andPublishStatusEqualTo(1);
-        if (StrUtil.isNotEmpty(keyword)) {
-            criteria.andNameLike("%" + keyword + "%");
-        }
-        if (brandId != null) {
-            criteria.andBrandIdEqualTo(brandId);
-        }
-        if (productCategoryId != null) {
-            criteria.andProductCategoryIdEqualTo(productCategoryId);
-        }
-        //1->按新品；2->按销量；3->价格从低到高；4->价格从高到低
-        if (sort == 1) {
-            example.setOrderByClause("id desc");
-        } else if (sort == 2) {
-            example.setOrderByClause("sale desc");
-        } else if (sort == 3) {
-            example.setOrderByClause("price asc");
-        } else if (sort == 4) {
-            example.setOrderByClause("price desc");
-        }
-        return productMapper.selectByExample(example);
+        // 关键词同时匹配名称/副标题/关键词字段，提升搜索召回率
+        return portalProductDao.searchProducts(
+                StrUtil.trimToNull(keyword),
+                brandId,
+                productCategoryId,
+                priceMin,
+                priceMax,
+                sort == null ? 0 : sort);
     }
 
     @Override

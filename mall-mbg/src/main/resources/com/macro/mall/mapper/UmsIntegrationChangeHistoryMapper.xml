@@ -10,6 +10,8 @@
     <result column="operate_man" jdbcType="VARCHAR" property="operateMan" />
     <result column="operate_note" jdbcType="VARCHAR" property="operateNote" />
     <result column="source_type" jdbcType="INTEGER" property="sourceType" />
+    <result column="order_id" jdbcType="BIGINT" property="orderId" />
+    <result column="balance_after" jdbcType="INTEGER" property="balanceAfter" />
   </resultMap>
   <sql id="Example_Where_Clause">
     <where>
@@ -71,7 +73,7 @@
   </sql>
   <sql id="Base_Column_List">
     id, member_id, create_time, change_type, change_count, operate_man, operate_note, 
-    source_type
+    source_type, order_id, balance_after
   </sql>
   <select id="selectByExample" parameterType="com.macro.mall.model.UmsIntegrationChangeHistoryExample" resultMap="BaseResultMap">
     select
@@ -109,10 +111,10 @@
     </selectKey>
     insert into ums_integration_change_history (member_id, create_time, change_type, 
       change_count, operate_man, operate_note, 
-      source_type)
+      source_type, order_id, balance_after)
     values (#{memberId,jdbcType=BIGINT}, #{createTime,jdbcType=TIMESTAMP}, #{changeType,jdbcType=INTEGER}, 
       #{changeCount,jdbcType=INTEGER}, #{operateMan,jdbcType=VARCHAR}, #{operateNote,jdbcType=VARCHAR}, 
-      #{sourceType,jdbcType=INTEGER})
+      #{sourceType,jdbcType=INTEGER}, #{orderId,jdbcType=BIGINT}, #{balanceAfter,jdbcType=INTEGER})
   </insert>
   <insert id="insertSelective" parameterType="com.macro.mall.model.UmsIntegrationChangeHistory">
     <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
@@ -141,6 +143,12 @@
       <if test="sourceType != null">
         source_type,
       </if>
+      <if test="orderId != null">
+        order_id,
+      </if>
+      <if test="balanceAfter != null">
+        balance_after,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="memberId != null">
@@ -163,6 +171,12 @@
       </if>
       <if test="sourceType != null">
         #{sourceType,jdbcType=INTEGER},
+      </if>
+      <if test="orderId != null">
+        #{orderId,jdbcType=BIGINT},
+      </if>
+      <if test="balanceAfter != null">
+        #{balanceAfter,jdbcType=INTEGER},
       </if>
     </trim>
   </insert>

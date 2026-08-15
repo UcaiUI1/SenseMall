@@ -48,4 +48,10 @@ public class EsProduct implements Serializable {
     private Integer sort;
     @Field(type = FieldType.Nested, fielddata = true)
     private List<EsProductAttributeValue> attrValueList;
+
+    /**
+     * 语义向量（由名称/副标题/关键词/品牌/分类文本 Embedding 生成）
+     */
+    @Field(type = FieldType.Dense_Vector, dims = 1024, similarity = "cosine")
+    private List<Float> vector;
 }

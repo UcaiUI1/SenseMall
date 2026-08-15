@@ -99,4 +99,37 @@
               AND cp.product_id = #{productId}
         )
     </select>
+
+    <select id="searchProducts" resultMap="com.macro.mall.mapper.PmsProductMapper.BaseResultMap">
+        SELECT *
+        FROM pms_product
+        WHERE delete_status = 0
+          AND publish_status = 1
+        <if test="keyword != null and keyword != ''">
+            AND (
+                name LIKE CONCAT('%', #{keyword}, '%')
+                OR sub_title LIKE CONCAT('%', #{keyword}, '%')
+                OR keywords LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        <if test="brandId != null">
+            AND brand_id = #{brandId}
+        </if>
+        <if test="productCategoryId != null">
+            AND product_category_id = #{productCategoryId}
+        </if>
+        <if test="priceMin != null">
+            AND price &gt;= #{priceMin}
+        </if>
+        <if test="priceMax != null">
+            AND price &lt;= #{priceMax}
+        </if>
+        <choose>
+            <when test="sort == 1">ORDER BY id DESC</when>
+            <when test="sort == 2">ORDER BY sale DESC</when>
+            <when test="sort == 3">ORDER BY price ASC</when>
+            <when test="sort == 4">ORDER BY price DESC</when>
+            <otherwise>ORDER BY id</otherwise>
+        </choose>
+    </select>
 </mapper>

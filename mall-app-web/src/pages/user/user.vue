@@ -12,19 +12,20 @@
         <view class="portrait-box">
           <image class="portrait" :src="memberInfo?.icon || '/static/missing-face.png'"></image>
         </view>
-        <view class="info-box">
+        <view class="info-box" @click="handleProfileTap">
           <text class="username">{{ memberInfo?.nickname || memberInfo?.username || '游客' }}</text>
+          <text class="login-hint">{{ hasLogin ? '个人资料' : '点击登录，开启好物之旅' }}</text>
         </view>
       </view>
       <view class="vip-card-box">
         <image class="card-bg" src="/static/vip-card-bg.png"></image>
-        <view class="b-btn">立即开通</view>
+        <view class="b-btn" @click="handleVipTap">了解会员</view>
         <view class="tit">
           <text class="yticon icon-iLinkapp-"></text>
-          黄金会员
+          SenseMall 会员
         </view>
-        <text class="e-m">mall移动端商城</text>
-        <text class="e-b">黄金及以上会员可享有会员价优惠商品。</text>
+        <text class="e-m">SenseMall 商城</text>
+        <text class="e-b">登录后享受会员专属福利，AI 好物推荐官「小感」为你服务。</text>
       </view>
     </view>
 
@@ -38,7 +39,7 @@
       <image class="arc" src="/static/arc.png"></image>
 
       <view class="tj-sction">
-        <view class="tj-item">
+        <view class="tj-item" @click="handleNavTo('/pages/user/integration')">
           <text class="num">{{ memberInfo?.integration || '暂无' }}</text>
           <text>积分</text>
         </view>
@@ -80,9 +81,9 @@
           <text class="yticon icon-yishouhuo"></text>
           <text>待收货</text>
         </view>
-        <view class="order-item" hover-class="common-hover" :hover-stay-time="50">
+        <view class="order-item" @click="handleNavTo('/pages/order/returnApply')" hover-class="common-hover" :hover-stay-time="50">
           <text class="yticon icon-shouhoutuikuan"></text>
-          <text>退款/售后</text>
+          <text>申请售后</text>
         </view>
       </view>
       <!-- 浏览历史 -->
@@ -111,7 +112,12 @@
           title="我的收藏"
           @eventClick="handleNavTo('/pages/user/productCollection')"
         ></mix-list-cell>
-        <mix-list-cell icon="icon-pingjia" iconColor="#ee883b" title="我的评价"></mix-list-cell>
+        <mix-list-cell
+          icon="icon-pingjia"
+          iconColor="#ee883b"
+          title="联系客服"
+          @eventClick="handleContactService"
+        ></mix-list-cell>
         <mix-list-cell
           icon="icon-shezhi1"
           iconColor="#e07472"
@@ -209,6 +215,25 @@ const handleNavTo = (url: string) => {
   uni.navigateTo({
     url,
   })
+}
+
+// 点击头像/昵称：游客去登录，已登录去设置
+const handleProfileTap = () => {
+  if (hasLogin.value) {
+    uni.navigateTo({ url: '/pages/set/set' })
+  } else {
+    uni.navigateTo({ url: '/pages/public/login' })
+  }
+}
+
+// 会员卡片（暂未实现等级体系）
+const handleVipTap = () => {
+  uni.showToast({ icon: 'none', title: '会员等级体系开发中，敬请期待' })
+}
+
+// 联系客服（暂为占位）
+const handleContactService = () => {
+  uni.showToast({ icon: 'none', title: '客服热线 400-000-0000（演示）' })
 }
 
 // 跳转到通知页（小程序端导航栏右侧按钮）
@@ -321,6 +346,13 @@ const handleCoverTouchend = () => {
     font-size: 38rpx;
     color: #303133;
     margin-left: 20rpx;
+  }
+
+  .login-hint {
+    margin-top: 8rpx;
+    margin-left: 20rpx;
+    font-size: 24rpx;
+    color: #909399;
   }
 }
 

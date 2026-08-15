@@ -1,5 +1,5 @@
 {
-  "name": "mall-app-web",
+  "name": "SenseMall",
   "appid": "",
   "description": "",
   "versionName": "3.0.0",
@@ -52,6 +52,9 @@
   "h5": {
     "router": {
       "base": "./"
+    },
+    "devServer": {
+      "port": 5176
     }
   },
   /* 小程序特有相关 */

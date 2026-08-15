@@ -11,6 +11,7 @@ import com.macro.mall.model.UmsMemberLevelExample;
 import com.macro.mall.portal.domain.MemberDetails;
 import com.macro.mall.portal.service.UmsMemberCacheService;
 import com.macro.mall.portal.service.UmsMemberService;
+import com.macro.mall.portal.service.IntegrationService;
 import com.macro.mall.security.util.JwtTokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,8 @@ public class UmsMemberServiceImpl implements UmsMemberService {
     private UmsMemberLevelMapper memberLevelMapper;
     @Autowired
     private UmsMemberCacheService memberCacheService;
+    @Autowired
+    private IntegrationService integrationService;
     @Value("${redis.key.authCode}")
     private String REDIS_KEY_PREFIX_AUTH_CODE;
     @Value("${redis.expire.authCode}")
@@ -103,6 +106,10 @@ public class UmsMemberServiceImpl implements UmsMemberService {
             umsMember.setMemberLevelId(memberLevelList.get(0).getId());
         }
         memberMapper.insert(umsMember);
+        // 新用户注册赠送积分
+        if (umsMember.getId() != null) {
+            integrationService.earn(umsMember.getId(), 100, 3, "新用户注册奖励", null);
+        }
         umsMember.setPassword(null);
     }
 
@@ -133,6 +140,22 @@ public class UmsMemberServiceImpl implements UmsMemberService {
         umsMember.setPassword(passwordEncoder.encode(password));
         memberMapper.updateByPrimaryKeySelective(umsMember);
         memberCacheService.delMember(umsMember.getId());
+    }
+
+    @Override
+    public void updateProfile(UmsMember member) {
+        UmsMember currentMember = getCurrentMember();
+        UmsMember update = new UmsMember();
+        update.setId(currentMember.getId());
+        update.setNickname(member.getNickname());
+        update.setIcon(member.getIcon());
+        update.setGender(member.getGender());
+        update.setBirthday(member.getBirthday());
+        update.setCity(member.getCity());
+        update.setJob(member.getJob());
+        update.setPersonalizedSignature(member.getPersonalizedSignature());
+        memberMapper.updateByPrimaryKeySelective(update);
+        memberCacheService.delMember(currentMember.getId());
     }
 
     @Override

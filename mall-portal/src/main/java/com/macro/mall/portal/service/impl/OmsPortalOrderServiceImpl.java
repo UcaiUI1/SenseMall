@@ -34,6 +34,8 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
     @Autowired
     private UmsMemberService memberService;
     @Autowired
+    private IntegrationService integrationService;
+    @Autowired
     private OmsCartItemService cartItemService;
     @Autowired
     private UmsMemberReceiveAddressService memberReceiveAddressService;
@@ -212,6 +214,10 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
         order.setIntegration(calcGifIntegration(orderItemList));
         //计算赠送成长值
         order.setGrowth(calcGiftGrowth(orderItemList));
+        //如使用积分，先记录抵扣积分（必须在 insert 之前设置，否则无法持久化）
+        if (orderParam.getUseIntegration() != null) {
+            order.setUseIntegration(orderParam.getUseIntegration());
+        }
         //生成订单号
         order.setOrderSn(generateOrderSn(order));
         //设置自动收货天数
@@ -233,11 +239,8 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
         }
         //如使用积分需要扣除积分
         if (orderParam.getUseIntegration() != null) {
-            order.setUseIntegration(orderParam.getUseIntegration());
-            if(currentMember.getIntegration()==null){
-                currentMember.setIntegration(0);
-            }
-            memberService.updateIntegration(currentMember.getId(), currentMember.getIntegration() - orderParam.getUseIntegration());
+            integrationService.spend(currentMember.getId(), orderParam.getUseIntegration(), 4,
+                    "订单积分抵扣", order.getId());
         }
         //删除购物车中的下单商品
         deleteCartItemList(cartPromotionItemList, currentMember);
@@ -261,6 +264,11 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
         //恢复所有下单商品的锁定库存，扣减真实库存
         OmsOrderDetail orderDetail = portalOrderDao.getDetail(orderId);
         int count = portalOrderDao.updateSkuStock(orderDetail.getOrderItemList());
+        //支付成功赠送积分（幂等：订单状态已改为已付款，重复调用不会重复赠送）
+        if (orderDetail.getIntegration() != null && orderDetail.getIntegration() > 0) {
+            integrationService.earn(orderDetail.getMemberId(), orderDetail.getIntegration(), 0,
+                    "购物赠送积分（订单 " + orderDetail.getOrderSn() + "）", orderId);
+        }
         return count;
     }
 
@@ -286,8 +294,8 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
             updateCouponStatus(timeOutOrder.getCouponId(), timeOutOrder.getMemberId(), 0);
             //返还使用积分
             if (timeOutOrder.getUseIntegration() != null) {
-                UmsMember member = memberService.getById(timeOutOrder.getMemberId());
-                memberService.updateIntegration(timeOutOrder.getMemberId(), member.getIntegration() + timeOutOrder.getUseIntegration());
+                integrationService.earn(timeOutOrder.getMemberId(), timeOutOrder.getUseIntegration(), 5,
+                        "订单超时取消，退回积分（订单 " + timeOutOrder.getOrderSn() + "）", timeOutOrder.getId());
             }
         }
         return timeOutOrders.size();
@@ -318,8 +326,8 @@ public class OmsPortalOrderServiceImpl implements OmsPortalOrderService {
             updateCouponStatus(cancelOrder.getCouponId(), cancelOrder.getMemberId(), 0);
             //返还使用积分
             if (cancelOrder.getUseIntegration() != null) {
-                UmsMember member = memberService.getById(cancelOrder.getMemberId());
-                memberService.updateIntegration(cancelOrder.getMemberId(), member.getIntegration() + cancelOrder.getUseIntegration());
+                integrationService.earn(cancelOrder.getMemberId(), cancelOrder.getUseIntegration(), 5,
+                        "订单取消，退回积分（订单 " + cancelOrder.getOrderSn() + "）", cancelOrder.getId());
             }
         }
     }

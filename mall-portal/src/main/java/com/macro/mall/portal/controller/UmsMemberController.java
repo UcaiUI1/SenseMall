@@ -11,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -86,6 +87,14 @@ public class UmsMemberController {
                                  @RequestParam String authCode) {
         memberService.updatePassword(telephone,password,authCode);
         return CommonResult.success(null,"密码修改成功");
+    }
+
+    @Operation(summary = "更新个人资料（昵称/头像/性别/生日/城市/职业/签名）")
+    @RequestMapping(value = "/updateProfile", method = RequestMethod.POST)
+    @ResponseBody
+    public CommonResult updateProfile(@RequestBody UmsMember member) {
+        memberService.updateProfile(member);
+        return CommonResult.success(null, "资料更新成功");
     }
 
 

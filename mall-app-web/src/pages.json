@@ -9,7 +9,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "Mall商城",
+        "navigationBarTitleText": "SenseMall商城",
         "enablePullDownRefresh": true,
         "app-plus": {
           "titleNView": {
@@ -119,6 +119,13 @@
       }
     },
     {
+      "path": "pages/ai/chat",
+      "style": {
+        "navigationBarTitleText": "好物推荐官",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/product/product",
       "style": {
         "navigationStyle": "custom",
@@ -182,6 +189,12 @@
       "path": "pages/order/orderDetail",
       "style": {
         "navigationBarTitleText": "订单详情"
+      }
+    },
+    {
+      "path": "pages/order/returnApply",
+      "style": {
+        "navigationBarTitleText": "申请售后"
       }
     },
     {
@@ -267,11 +280,29 @@
           }
         }
       }
+    },
+    {
+      "path": "pages/user/integration",
+      "style": {
+        "navigationBarTitleText": "我的积分"
+      }
+    },
+    {
+      "path": "pages/user/profile",
+      "style": {
+        "navigationBarTitleText": "个人资料"
+      }
+    },
+    {
+      "path": "pages/user/changePassword",
+      "style": {
+        "navigationBarTitleText": "修改密码"
+      }
     }
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Mall商城",
+    "navigationBarTitleText": "SenseMall商城",
     "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#f8f8f8"
   },

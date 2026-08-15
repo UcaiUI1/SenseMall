@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -85,6 +86,20 @@ public class EsProductController {
                                                       @RequestParam(required = false, defaultValue = "5") Integer pageSize,
                                                       @RequestParam(required = false, defaultValue = "0") Integer sort) {
         Page<EsProduct> esProductPage = esProductService.search(keyword, brandId, productCategoryId, pageNum, pageSize, sort);
+        return CommonResult.success(CommonPage.restPage(esProductPage));
+    }
+
+    @Operation(summary = "语义搜索（混合检索：向量相似度 + 关键词）")
+    @RequestMapping(value = "/search/semantic", method = RequestMethod.GET)
+    @ResponseBody
+    public CommonResult<CommonPage<EsProduct>> semanticSearch(@RequestParam(required = false) String keyword,
+                                                              @RequestParam(required = false) Long brandId,
+                                                              @RequestParam(required = false) Long productCategoryId,
+                                                              @RequestParam(required = false) BigDecimal priceMin,
+                                                              @RequestParam(required = false) BigDecimal priceMax,
+                                                              @RequestParam(required = false, defaultValue = "1") Integer pageNum,
+                                                              @RequestParam(required = false, defaultValue = "8") Integer pageSize) {
+        Page<EsProduct> esProductPage = esProductService.semanticSearch(keyword, brandId, productCategoryId, priceMin, priceMax, pageNum, pageSize);
         return CommonResult.success(CommonPage.restPage(esProductPage));
     }
 

@@ -26,6 +26,12 @@ public class UmsIntegrationChangeHistory implements Serializable {
     @Schema(title = "积分来源：0->购物；1->管理员修改")
     private Integer sourceType;
 
+    @Schema(title = "关联订单ID")
+    private Long orderId;
+
+    @Schema(title = "变动后积分余额")
+    private Integer balanceAfter;
+
     private static final long serialVersionUID = 1L;
 
     public Long getId() {
@@ -90,6 +96,22 @@ public class UmsIntegrationChangeHistory implements Serializable {
 
     public void setSourceType(Integer sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
+    }
+
+    public Integer getBalanceAfter() {
+        return balanceAfter;
+    }
+
+    public void setBalanceAfter(Integer balanceAfter) {
+        this.balanceAfter = balanceAfter;
     }
 
     @Override

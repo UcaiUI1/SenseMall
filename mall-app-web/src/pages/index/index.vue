@@ -33,23 +33,18 @@
       </view>
     </view>
 
-    <!-- 头部功能区 -->
+    <!-- 金刚区（仿淘宝宫格） -->
     <view class="cate-section">
-      <view class="cate-item" @click="handleNavToTopicPage">
-        <image src="/static/temp/c3.png"></image>
-        <text>专题</text>
-      </view>
-      <view class="cate-item" @click="handleNavToTopicPage">
-        <image src="/static/temp/c5.png"></image>
-        <text>话题</text>
-      </view>
-      <view class="cate-item" @click="handleNavToRecommendBrandPage">
-        <image src="/static/temp/c6.png"></image>
-        <text>优选</text>
-      </view>
-      <view class="cate-item" @click="handleNavToHotProductListPage">
-        <image src="/static/temp/c7.png"></image>
-        <text>特惠</text>
+      <view
+        class="cate-item"
+        v-for="(entry, index) in cateEntries"
+        :key="index"
+        @click="handleCateEntry(entry)"
+      >
+        <view class="cate-icon" :style="{ backgroundColor: entry.bg }">
+          <text class="cate-emoji">{{ entry.icon }}</text>
+        </view>
+        <text class="cate-name">{{ entry.name }}</text>
       </view>
     </view>
 
@@ -62,36 +57,35 @@
       </view>
       <text class="yticon icon-you"></text>
     </view>
-    <view class="guess-section">
+    <view class="brand-grid">
       <view
         v-for="(item, index) in brandList"
         :key="index"
-        class="guess-item"
+        class="brand-item"
         @click="handleNavToBrandDetailPage(item)"
       >
-        <view class="image-wrapper-brand">
+        <view class="brand-logo">
           <image :src="item.logo" mode="aspectFit"></image>
         </view>
-        <text class="title clamp">{{ item.name }}</text>
-        <text class="title2">商品数量：{{ item.productCount }}</text>
+        <text class="brand-name clamp">{{ item.name }}</text>
+        <text class="brand-count">{{ item.productCount ?? 0 }}件商品</text>
       </view>
     </view>
 
     <!-- 秒杀专区 -->
-    <view class="f-header m-t" v-if="homeFlashPromotion">
-      <image src="/static/icon_flash_promotion.png"></image>
-      <view class="tit-box">
-        <text class="tit">秒杀专区</text>
-        <text class="tit2">下一场 {{ formatTime(homeFlashPromotion?.nextStartTime) }} 开始</text>
+    <view class="flash-banner" v-if="homeFlashPromotion" @click="handleNavToHotProductListPage">
+      <view class="flash-left">
+        <text class="flash-title">限时秒杀</text>
+        <text class="flash-sub">整点开抢 · 手慢无</text>
       </view>
-      <view class="tit-box">
-        <text class="tit2" style="text-align: right">本场结束剩余：</text>
-        <view style="text-align: right">
-          <text class="hour timer">{{ cutDownTime.endHour }}</text>
-          <text>:</text>
-          <text class="minute timer">{{ cutDownTime.endMinute }}</text>
-          <text>:</text>
-          <text class="second timer">{{ cutDownTime.endSecond }}</text>
+      <view class="flash-right">
+        <text class="flash-label">距本场结束</text>
+        <view class="flash-countdown">
+          <text class="flash-num">{{ cutDownTime.endHour }}</text>
+          <text class="flash-colon">:</text>
+          <text class="flash-num">{{ cutDownTime.endMinute }}</text>
+          <text class="flash-colon">:</text>
+          <text class="flash-num">{{ cutDownTime.endSecond }}</text>
         </view>
       </view>
     </view>
@@ -166,29 +160,28 @@
       </view>
     </view>
 
-    <!-- 猜你喜欢 -->
-    <view class="f-header m-t">
-      <image src="/static/icon_recommend_product.png"></image>
-      <view class="tit-box">
-        <text class="tit">猜你喜欢</text>
-        <text class="tit2">你喜欢的都在这里了</text>
-      </view>
-      <text class="yticon icon-you" v-show="false"></text>
+    <!-- 猜你喜欢（仿淘宝瀑布流） -->
+    <view class="recommend-header">
+      <view class="recommend-divider"></view>
+      <text class="recommend-title">猜你喜欢</text>
+      <view class="recommend-divider"></view>
     </view>
 
-    <view class="guess-section">
+    <view class="recommend-section">
       <view
         v-for="(item, index) in recommendProductList"
         :key="index"
-        class="guess-item"
+        class="recommend-card"
         @click="handleNavToDetailPage(item)"
       >
-        <view class="image-wrapper">
-          <image :src="item.pic" mode="aspectFill"></image>
+        <image class="recommend-img" :src="item.pic" mode="aspectFill"></image>
+        <view class="recommend-info">
+          <text class="recommend-name clamp-2">{{ item.name }}</text>
+          <view class="recommend-bottom">
+            <text class="recommend-price">￥{{ item.price }}</text>
+            <text class="recommend-sale">已售{{ item.sale || 0 }}</text>
+          </view>
         </view>
-        <text class="title clamp">{{ item.name }}</text>
-        <text class="title2 clamp">{{ item.subTitle }}</text>
-        <text class="price">￥{{ item.price }}</text>
       </view>
     </view>
     <uni-load-more :status="loadingType"></uni-load-more>
@@ -242,6 +235,20 @@ const recommendPageParam = ref<PageParam>({
   pageNum: 1,
   pageSize: 4,
 })
+
+// 金刚区入口（仿淘宝首页宫格）
+const cateEntries = [
+  { icon: '🛍️', name: '分类', bg: '#ff6b81', type: 'category' },
+  { icon: '⚡', name: '限时抢购', bg: '#ff9500', type: 'flash' },
+  { icon: '🏷️', name: '品牌闪购', bg: '#34c759', type: 'brand' },
+  { icon: '🎁', name: '领券中心', bg: '#ff3b30', type: 'coupon' },
+  { icon: '🆕', name: '新品首发', bg: '#5856d6', type: 'new' },
+  { icon: '🔥', name: '人气推荐', bg: '#ff2d55', type: 'hot' },
+  { icon: '👑', name: '会员中心', bg: '#af52de', type: 'member' },
+  { icon: '🤖', name: '好物推荐', bg: '#fa436a', type: 'ai' },
+  { icon: '📢', name: '消息通知', bg: '#007aff', type: 'notice' },
+  { icon: '📱', name: '全部商品', bg: '#8e8e93', type: 'all' },
+]
 
 // ===== 计算属性 =====
 // 秒杀倒计时计算
@@ -372,7 +379,51 @@ const handleNavToDetailPage = (item: PmsProduct) => {
 
 // 跳转到广告详情页
 const handleNavToAdvertisePage = (item: SmsHomeAdvertise) => {
-  // TODO: 实现广告详情页跳转逻辑
+  if (item.url && item.url.startsWith('/')) {
+    if (item.url.includes('/pages/index') || item.url.includes('/pages/category') || item.url.includes('/pages/cart') || item.url.includes('/pages/user')) {
+      uni.switchTab({ url: item.url })
+    } else {
+      uni.navigateTo({ url: item.url })
+    }
+  } else {
+    uni.showToast({ icon: 'none', title: '活动已结束' })
+  }
+}
+
+// 金刚区入口跳转
+const handleCateEntry = (entry: { type: string }) => {
+  switch (entry.type) {
+    case 'category':
+      uni.switchTab({ url: '/pages/category/category' })
+      break
+    case 'flash':
+    case 'hot':
+      uni.navigateTo({ url: '/pages/product/hotProductList' })
+      break
+    case 'brand':
+      uni.navigateTo({ url: '/pages/brand/list' })
+      break
+    case 'coupon':
+      uni.navigateTo({ url: '/pages/coupon/couponList' })
+      break
+    case 'new':
+      uni.navigateTo({ url: '/pages/product/newProductList' })
+      break
+    case 'member':
+      uni.switchTab({ url: '/pages/user/user' })
+      break
+    case 'ai':
+      uni.navigateTo({ url: '/pages/ai/chat' })
+      break
+    case 'notice':
+      uni.navigateTo({ url: '/pages/notice/notice' })
+      break
+    case 'all':
+      uni.navigateTo({ url: '/pages/product/search' })
+      break
+    default:
+      uni.showToast({ icon: 'none', title: '功能开发中' })
+  }
 }
 
 // 跳转到品牌制造商直供页
@@ -408,6 +459,13 @@ const handleNavToTopicPage = () => {
   uni.showToast({
     icon: 'none',
     title: '功能开发中',
+  })
+}
+
+// 跳转到 AI 导购页
+const handleNavToAiChatPage = () => {
+  uni.navigateTo({
+    url: '/pages/ai/chat',
   })
 }
 
@@ -960,5 +1018,232 @@ page {
     flex-direction: column;
     padding-left: 40rpx;
   }
+}
+
+/* ===== 金刚区（仿淘宝宫格） ===== */
+.cate-section {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  row-gap: 26rpx;
+  padding: 26rpx 12rpx 30rpx;
+  background: #ffffff;
+  border-radius: 20rpx 20rpx 0 0;
+  margin-top: -24rpx;
+  position: relative;
+  z-index: 5;
+}
+
+.cate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cate-icon {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 16rpx rgba(31, 41, 55, 0.12);
+}
+
+.cate-emoji {
+  font-size: 44rpx;
+}
+
+.cate-name {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #303133;
+}
+
+/* ===== 品牌宫格 ===== */
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  padding: 0 24rpx 24rpx;
+  background: #ffffff;
+}
+
+.brand-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fafafa;
+  border-radius: 16rpx;
+  padding: 24rpx 12rpx;
+}
+
+.brand-logo {
+  width: 120rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  image {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.brand-name {
+  margin-top: 14rpx;
+  font-size: 26rpx;
+  color: #303133;
+  font-weight: 600;
+}
+
+.brand-count {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: #909399;
+}
+
+/* ===== 限时秒杀横幅（仿淘宝） ===== */
+.flash-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16rpx 24rpx 0;
+  padding: 22rpx 30rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(90deg, #ff4d4f 0%, #ff7a45 100%);
+  box-shadow: 0 8rpx 20rpx rgba(255, 77, 79, 0.25);
+}
+
+.flash-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.flash-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.flash-sub {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.flash-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.flash-label {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8rpx;
+}
+
+.flash-countdown {
+  display: flex;
+  align-items: center;
+}
+
+.flash-num {
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #ff4d4f;
+  background: #ffffff;
+  border-radius: 6rpx;
+}
+
+.flash-colon {
+  margin: 0 6rpx;
+  font-size: 24rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ===== 猜你喜欢（仿淘宝瀑布流） ===== */
+.recommend-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34rpx 0 26rpx;
+}
+
+.recommend-divider {
+  width: 56rpx;
+  height: 2rpx;
+  background: #e0e0e0;
+}
+
+.recommend-title {
+  margin: 0 20rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #303133;
+}
+
+.recommend-section {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 0 24rpx 30rpx;
+}
+
+.recommend-card {
+  width: 48.5%;
+  margin-bottom: 20rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(31, 41, 55, 0.06);
+}
+
+.recommend-img {
+  width: 100%;
+  height: 340rpx;
+  background: #f5f5f5;
+}
+
+.recommend-info {
+  padding: 16rpx 18rpx 20rpx;
+}
+
+.recommend-name {
+  font-size: 26rpx;
+  color: #303133;
+  line-height: 1.45;
+  min-height: 76rpx;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.recommend-bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 12rpx;
+}
+
+.recommend-price {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ff5000;
+}
+
+.recommend-sale {
+  font-size: 20rpx;
+  color: #909399;
 }
 </style>

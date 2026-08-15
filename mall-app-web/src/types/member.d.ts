@@ -14,6 +14,18 @@ export type MemberInfo = {
   integration?: number
   /** 成长值 */
   growth?: number
+  /** 手机号 */
+  phone?: string
+  /** 性别：0未知；1男；2女 */
+  gender?: number
+  /** 生日 */
+  birthday?: string
+  /** 城市 */
+  city?: string
+  /** 职业 */
+  job?: string
+  /** 个性签名 */
+  personalizedSignature?: string
 }
 
 /** 登录接口返回结果 */
