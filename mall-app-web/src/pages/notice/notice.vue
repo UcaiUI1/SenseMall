@@ -1,7 +1,6 @@
 <template>
   <view class="container">
     <view class="empty">
-      <text class="empty-icon">🔔</text>
       <text class="empty-text">暂无消息通知</text>
       <text class="empty-sub">有新消息时会第一时间提醒你</text>
     </view>
@@ -21,10 +20,6 @@
   flex-direction: column;
   align-items: center;
   padding-top: 220rpx;
-}
-
-.empty-icon {
-  font-size: 100rpx;
 }
 
 .empty-text {

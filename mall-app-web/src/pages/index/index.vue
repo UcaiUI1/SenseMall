@@ -42,7 +42,7 @@
         @click="handleCateEntry(entry)"
       >
         <view class="cate-icon" :style="{ backgroundColor: entry.bg }">
-          <text class="cate-emoji">{{ entry.icon }}</text>
+          <text class="cate-char">{{ entry.name.charAt(0) }}</text>
         </view>
         <text class="cate-name">{{ entry.name }}</text>
       </view>
@@ -238,16 +238,16 @@ const recommendPageParam = ref<PageParam>({
 
 // 金刚区入口（仿淘宝首页宫格）
 const cateEntries = [
-  { icon: '🛍️', name: '分类', bg: '#ff6b81', type: 'category' },
-  { icon: '⚡', name: '限时抢购', bg: '#ff9500', type: 'flash' },
-  { icon: '🏷️', name: '品牌闪购', bg: '#34c759', type: 'brand' },
-  { icon: '🎁', name: '领券中心', bg: '#ff3b30', type: 'coupon' },
-  { icon: '🆕', name: '新品首发', bg: '#5856d6', type: 'new' },
-  { icon: '🔥', name: '人气推荐', bg: '#ff2d55', type: 'hot' },
-  { icon: '👑', name: '会员中心', bg: '#af52de', type: 'member' },
-  { icon: '🤖', name: '好物推荐', bg: '#fa436a', type: 'ai' },
-  { icon: '📢', name: '消息通知', bg: '#007aff', type: 'notice' },
-  { icon: '📱', name: '全部商品', bg: '#8e8e93', type: 'all' },
+  { name: '分类', bg: '#ff6b81', type: 'category' },
+  { name: '限时抢购', bg: '#ff9500', type: 'flash' },
+  { name: '品牌闪购', bg: '#34c759', type: 'brand' },
+  { name: '领券中心', bg: '#ff3b30', type: 'coupon' },
+  { name: '新品首发', bg: '#5856d6', type: 'new' },
+  { name: '人气推荐', bg: '#ff2d55', type: 'hot' },
+  { name: '会员中心', bg: '#af52de', type: 'member' },
+  { name: '好物推荐', bg: '#fa436a', type: 'ai' },
+  { name: '消息通知', bg: '#007aff', type: 'notice' },
+  { name: '全部商品', bg: '#8e8e93', type: 'all' },
 ]
 
 // ===== 计算属性 =====
@@ -1049,8 +1049,10 @@ page {
   box-shadow: 0 6rpx 16rpx rgba(31, 41, 55, 0.12);
 }
 
-.cate-emoji {
-  font-size: 44rpx;
+.cate-char {
+  font-size: 38rpx;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 .cate-name {

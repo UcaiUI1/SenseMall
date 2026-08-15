@@ -1,7 +1,6 @@
 <template>
   <view class="container">
     <view v-if="orders.length === 0 && !loading" class="empty">
-      <text class="empty-icon">📦</text>
       <text class="empty-text">暂无可申请售后的订单</text>
     </view>
 
@@ -181,10 +180,6 @@ onLoad(() => {
   flex-direction: column;
   align-items: center;
   padding-top: 200rpx;
-}
-
-.empty-icon {
-  font-size: 90rpx;
 }
 
 .empty-text {

@@ -24,7 +24,7 @@
       <!-- 欢迎页 -->
       <view v-if="messages.length === 0" class="welcome">
         <view class="welcome-avatar">
-          <text class="welcome-emoji">🤖</text>
+          <text class="welcome-char">感</text>
         </view>
         <text class="welcome-title">你好，我是小感</text>
         <text class="welcome-desc">SenseMall 的好物推荐官，直接说你的购物需求，我来帮你精准找到心仪好物</text>
@@ -33,10 +33,9 @@
             class="welcome-card"
             v-for="(suggest, index) in suggestions"
             :key="index"
-            @click="quickSend(suggest.text)"
+            @click="quickSend(suggest)"
           >
-            <text class="card-emoji">{{ suggest.icon }}</text>
-            <text class="card-text">{{ suggest.text }}</text>
+            <text class="card-text">{{ suggest }}</text>
             <text class="card-arrow">›</text>
           </view>
         </view>
@@ -46,7 +45,7 @@
       <view v-for="(msg, index) in messages" :key="index" :id="'msg-' + index">
         <view class="msg-row" :class="msg.role === 'user' ? 'row-user' : 'row-ai'">
           <view v-if="msg.role === 'ai'" class="avatar">
-            <text class="avatar-emoji">🤖</text>
+            <text class="avatar-char">感</text>
           </view>
           <view class="bubble" :class="msg.role === 'user' ? 'bubble-user' : 'bubble-ai'">
             <text v-if="msg.content" class="bubble-text">{{ msg.content }}</text>
@@ -121,12 +120,7 @@ const scrollIntoView = ref('')
 const sessionId = ref('')
 const statusBarHeight = ref(0)
 
-const suggestions = [
-  { icon: '👟', text: '500以内的运动鞋' },
-  { icon: '📱', text: '3000以内的小米手机' },
-  { icon: '📺', text: '4000元以内的电视' },
-  { icon: '⚡', text: '500GB 固态硬盘' },
-]
+const suggestions = ['500以内的运动鞋', '3000以内的小米手机', '4000元以内的电视', '500GB 固态硬盘']
 
 const goBack = () => {
   uni.navigateBack({
@@ -281,8 +275,10 @@ onLoad(() => {
   box-shadow: 0 12rpx 30rpx rgba(250, 67, 106, 0.3);
 }
 
-.welcome-emoji {
-  font-size: 68rpx;
+.welcome-char {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .welcome-title {
@@ -317,11 +313,6 @@ onLoad(() => {
   padding: 26rpx 28rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 8rpx 24rpx rgba(31, 41, 55, 0.06);
-}
-
-.card-emoji {
-  font-size: 40rpx;
-  margin-right: 22rpx;
 }
 
 .card-text {
@@ -363,8 +354,10 @@ onLoad(() => {
   box-shadow: 0 6rpx 16rpx rgba(250, 67, 106, 0.25);
 }
 
-.avatar-emoji {
-  font-size: 36rpx;
+.avatar-char {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .bubble {
