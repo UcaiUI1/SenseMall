@@ -85,7 +85,7 @@ const clearCache = () => {
 
 // 直达 GitHub 项目
 const openGithub = () => {
-  const url = 'https://github.com/UcaiUI1/mall'
+  const url = 'https://github.com/UcaiUI1/SenseMall'
   // #ifdef H5
   window.location.href = url
   // #endif
