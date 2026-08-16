@@ -54,4 +54,10 @@ public class EsProduct implements Serializable {
      */
     @Field(type = FieldType.Dense_Vector, dims = 1024, similarity = "cosine")
     private List<Float> vector;
+
+    /**
+     * 商品内容哈希：用于增量同步时判断商品是否变化（避免全量重建向量）
+     */
+    @Field(type = FieldType.Keyword)
+    private String contentHash;
 }

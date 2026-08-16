@@ -50,6 +50,12 @@ public interface EsProductService {
                                    Integer pageNum, Integer pageSize);
 
     /**
+     * 增量同步：对比内容哈希，仅重建变化的商品向量，并清理已下架/删除的商品
+     * @return 本次更新的商品数
+     */
+    int syncIncremental();
+
+    /**
      * 根据商品id推荐相关商品
      */
     Page<EsProduct> recommend(Long id, Integer pageNum, Integer pageSize);

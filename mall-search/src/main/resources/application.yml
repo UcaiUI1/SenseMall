@@ -38,6 +38,10 @@ mall:
     embedding:
       api-key: ${DASHSCOPE_API_KEY:}
       model: text-embedding-v3
+    sync:
+      enabled: true # 是否开启定时增量同步
+      interval-ms: 900000 # 同步间隔（默认 15 分钟）
+      initial-delay-ms: 60000 # 启动后延迟（默认 1 分钟）
 
 
 

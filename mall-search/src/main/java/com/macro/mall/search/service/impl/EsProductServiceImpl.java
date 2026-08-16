@@ -1,6 +1,7 @@
 package com.macro.mall.search.service.impl;
 
 import cn.hutool.core.collection.ListUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import co.elastic.clients.elasticsearch._types.aggregations.*;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
 import org.springframework.data.elasticsearch.client.elc.*;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -49,7 +51,10 @@ public class EsProductServiceImpl implements EsProductService {
     @Override
     public int importAll() {
         List<EsProduct> esProductList = productDao.getAllEsProductList(null);
-        esProductList.forEach(this::fillEmbedding);
+        esProductList.forEach(product -> {
+            product.setContentHash(calcContentHash(product));
+            fillEmbedding(product);
+        });
         Iterable<EsProduct> esProductIterable = productRepository.saveAll(esProductList);
         Iterator<EsProduct> iterator = esProductIterable.iterator();
         int result = 0;
@@ -71,10 +76,92 @@ public class EsProductServiceImpl implements EsProductService {
         List<EsProduct> esProductList = productDao.getAllEsProductList(id);
         if (esProductList.size() > 0) {
             EsProduct esProduct = esProductList.get(0);
+            esProduct.setContentHash(calcContentHash(esProduct));
             fillEmbedding(esProduct);
             result = productRepository.save(esProduct);
         }
         return result;
+    }
+
+    @Override
+    public int syncIncremental() {
+        List<EsProduct> dbProducts = productDao.getAllEsProductList(null);
+        Set<Long> dbIds = new HashSet<>();
+        int updated = 0;
+        // 1. 对比内容哈希，仅重建变化的商品
+        for (EsProduct product : dbProducts) {
+            dbIds.add(product.getId());
+            String hash = calcContentHash(product);
+            EsProduct existing = productRepository.findById(product.getId()).orElse(null);
+            if (existing != null && hash.equals(existing.getContentHash())) {
+                continue;
+            }
+            product.setContentHash(hash);
+            fillEmbedding(product);
+            productRepository.save(product);
+            updated++;
+        }
+        // 2. 清理已下架/删除的文档
+        int deleted = deleteStaleDocs(dbIds);
+        if (updated > 0 || deleted > 0) {
+            LOGGER.info("ES 增量同步完成：更新 {} 条，清理 {} 条", updated, deleted);
+        }
+        return updated;
+    }
+
+    /**
+     * 计算商品内容哈希（影响搜索展示的字段）
+     */
+    private String calcContentHash(EsProduct product) {
+        String text = StrUtil.join("|",
+                product.getName(),
+                product.getSubTitle(),
+                product.getKeywords(),
+                product.getBrandName(),
+                product.getProductCategoryName(),
+                product.getPic(),
+                product.getPrice(),
+                product.getSale(),
+                product.getStock(),
+                product.getNewStatus(),
+                product.getRecommandStatus(),
+                product.getPromotionType());
+        return DigestUtil.sha256Hex(text);
+    }
+
+    /**
+     * 删除 ES 中已不存在（或已下架）的商品文档
+     */
+    private int deleteStaleDocs(Set<Long> dbIds) {
+        List<Long> staleIds = new ArrayList<>();
+        int pageSize = 100;
+        int page = 0;
+        while (true) {
+            NativeQuery query = new NativeQueryBuilder()
+                    .withQuery(QueryBuilders.matchAll(builder -> builder))
+                    .withPageable(PageRequest.of(page, pageSize))
+                    .build();
+            SearchHits<EsProduct> hits = elasticsearchTemplate.search(query, EsProduct.class);
+            if (hits.getTotalHits() <= 0) {
+                break;
+            }
+            boolean hasPage = false;
+            for (SearchHit<EsProduct> hit : hits) {
+                hasPage = true;
+                Long id = hit.getContent().getId();
+                if (id != null && !dbIds.contains(id)) {
+                    staleIds.add(id);
+                }
+            }
+            page++;
+            if (!hasPage || hits.getTotalHits() < (long) pageSize) {
+                break;
+            }
+        }
+        if (!staleIds.isEmpty()) {
+            productRepository.deleteAllById(staleIds);
+        }
+        return staleIds.size();
     }
 
     @Override

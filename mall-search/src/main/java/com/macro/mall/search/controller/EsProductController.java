@@ -37,6 +37,14 @@ public class EsProductController {
         return CommonResult.success(count);
     }
 
+    @Operation(summary = "增量同步（对比内容哈希，仅重建变化的商品）")
+    @RequestMapping(value = "/syncIncremental", method = RequestMethod.POST)
+    @ResponseBody
+    public CommonResult<Integer> syncIncremental() {
+        int count = esProductService.syncIncremental();
+        return CommonResult.success(count);
+    }
+
     @Operation(summary = "根据id删除商品")
     @RequestMapping(value = "/delete/{id}", method = RequestMethod.GET)
     @ResponseBody
